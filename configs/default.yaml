@@ -1,0 +1,81 @@
+# aifs-frost-verif default configuration (Tier 0).
+# Every scientific decision lives here and is echoed into docs/METHODOLOGY.md.
+name: tier0_default
+
+paths:
+  cache_dir: data/cache
+  fields_dir: data/cache/fields        # standardised NetCDF per (model, init)
+  obs_dir: data/cache/obs
+  stations_csv: data/static/stations_tier0.csv
+  orography_nc: data/static/orog_0p25_norway.nc   # optional, see lapse.enabled
+  results_dir: results/tier0
+
+models:
+  - aifs-single        # ECMWF data-driven deterministic, 0.25 deg, open data
+  - ifs                # ECMWF physics HRES, 0.25 deg, open data, same initial conditions
+baselines:
+  persistence: true
+  climatology: true    # obs-window climatology by station and hour of day (not a 30-year normal)
+  lagged_ensemble:
+    enabled: false     # Tier 2; successive inits valid at the same time
+    n_members: 3
+    step_h: 12         # must equal the spacing of runs.init_hours (00 and 12 UTC), else no complete member set exists
+
+variables:
+  t2m:  {model_param: "2t",  obs_element: "air_temperature",  unit: "K",   obs_unit: "degC", level_m: 2}
+  ws10: {model_param: null,  obs_element: "wind_speed",       unit: "m/s", obs_unit: "m/s",  level_m: 10, derived_from: ["10u", "10v"]}
+  msl:  {model_param: "msl", obs_element: "air_pressure_at_sea_level", unit: "Pa", obs_unit: "hPa"}
+  tp24: {model_param: "tp",  obs_element: "sum(precipitation_amount PT1H)", unit: "mm", obs_unit: "mm", accumulation_h: 24, enabled: false}
+
+runs:
+  init_hours: [0, 12]
+  window_start: "2026-09-07"
+  window_end: "2026-09-14"
+  lead_hours: [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72]
+
+stations:
+  counties: [Vestland, "Trøndelag", Nordland, Troms]
+  min_lat: 60.39                  # Bergen and northwards
+  bbox: {lon_min: 4.5, lon_max: 20.0, lat_min: 60.0, lat_max: 70.5}
+  max_n: 60
+  exposure_max: 2                 # Frost exposureCategory 1 best, 5 bad
+  performance_max: "C"            # Frost performanceCategory A best, E worst
+  classes: {mountain_min_elev_m: 600, coastal_max_dist_km: 5}
+
+interp:
+  methods: [nearest, bilinear]    # both computed; primary per variable below
+  primary: {t2m: bilinear, ws10: bilinear, msl: bilinear, tp24: nearest}
+
+lapse:
+  enabled: true
+  gamma_k_per_m: 0.0065           # applied to t2m only, on model minus station elevation
+  fallback_if_no_orography: disable
+
+time:
+  tz: UTC
+  match_tolerance_min: 0
+
+accumulation:
+  min_hours_present: 22           # of 24 for tp24 obs windows
+
+thresholds_mm_24h: [1, 5, 10]
+
+qc:
+  accept_codes: [0, 1]            # Frost qualityCode; 6 is model data and is never accepted
+  exclude_codes_always: [6, 7]
+
+missing:
+  min_coverage: 0.8               # station-lead pairs below this are dropped from CI tables
+  pairwise_complete: true         # score only where all compared models and obs exist
+
+bootstrap:
+  block_col: valid_date
+  n_resamples: 1000
+  ci: 0.90
+  seed: 0
+
+strata: [all, station_class, county, valid_hour, obs_tercile]
+
+diagnostics:
+  tail_quantile: 0.90
+  activity_variable: t2m

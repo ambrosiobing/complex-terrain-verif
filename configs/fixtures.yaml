@@ -1,0 +1,53 @@
+# Offline configuration used by CI and tests. Everything comes from `afv fixtures`.
+name: fixtures
+
+paths:
+  cache_dir: data/fixtures
+  fields_dir: data/fixtures/fields
+  obs_dir: data/fixtures/obs
+  stations_csv: data/fixtures/stations_fixture.csv
+  orography_nc: data/fixtures/orog_fixture.nc
+  results_dir: results/fixtures
+
+models: [aifs-single, ifs]
+baselines:
+  persistence: true
+  climatology: true
+  lagged_ensemble: {enabled: false, n_members: 3, step_h: 6}
+
+variables:
+  t2m:  {model_param: "2t", obs_element: "air_temperature", unit: "K", obs_unit: "degC", level_m: 2}
+  ws10: {model_param: null, obs_element: "wind_speed", unit: "m/s", obs_unit: "m/s", level_m: 10, derived_from: ["10u", "10v"]}
+
+runs:
+  init_hours: [0, 12]
+  window_start: "2026-09-01"
+  window_end: "2026-09-04"
+  lead_hours: [6, 12, 18, 24, 30, 36, 42, 48]
+
+stations:
+  counties: [Fixture]
+  min_lat: 0
+  bbox: {lon_min: 5.0, lon_max: 6.0, lat_min: 60.0, lat_max: 61.0}
+  max_n: 10
+  exposure_max: 5
+  performance_max: "E"
+  classes: {mountain_min_elev_m: 600, coastal_max_dist_km: 5}
+
+interp:
+  methods: [nearest, bilinear]
+  primary: {t2m: bilinear, ws10: bilinear}
+
+lapse:
+  enabled: true
+  gamma_k_per_m: 0.0065
+  fallback_if_no_orography: disable
+
+time: {tz: UTC, match_tolerance_min: 0}
+accumulation: {min_hours_present: 22}
+thresholds_mm_24h: [1, 5, 10]
+qc: {accept_codes: [0, 1], exclude_codes_always: [6, 7]}
+missing: {min_coverage: 0.5, pairwise_complete: true}
+bootstrap: {block_col: valid_date, n_resamples: 200, ci: 0.90, seed: 0}
+strata: [all, station_class, valid_hour, obs_tercile]
+diagnostics: {tail_quantile: 0.90, activity_variable: t2m}

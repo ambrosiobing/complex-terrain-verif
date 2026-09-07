@@ -1,0 +1,32 @@
+# credentials
+.env
+*.secret
+
+# caches and heavy data
+data/cache/*
+!data/cache/.gitkeep
+data/fixtures/*
+!data/fixtures/.gitkeep
+!data/fixtures/README.md
+*.grib
+*.grib2
+*.index
+*.ckpt
+*.pt
+
+# results are regenerated; keep the small committed tables only
+results/*.png
+results/*.svg
+results/figures/
+results/fixtures/
+results/*/figures/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/

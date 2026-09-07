@@ -1,0 +1,51 @@
+cff-version: 1.2.0
+title: "aifs-frost-verif: station verification of open AI weather forecasts over northern Norway"
+message: "If you use this software, please cite it and the works it builds on (see README, Related work)."
+type: software
+authors:
+  - family-names: Pagaran
+    given-names: Joseph Ambrose
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+version: 0.1.0
+date-released: 2026-09-13
+license: Apache-2.0
+repository-code: "https://github.com/ambrosiobing/aifs-frost-verif"
+keywords:
+  - forecast verification
+  - AIFS
+  - Anemoi
+  - Frost API
+  - MET Norway
+references:
+  - type: article
+    authors:
+      - family-names: Bremnes
+        given-names: John Bjørnar
+      - family-names: Nipen
+        given-names: Thomas N.
+      - family-names: Seierstad
+        given-names: Ivar A.
+    title: "Evaluation of forecasts by a global data-driven weather model with and without probabilistic post-processing at Norwegian stations"
+    journal: Nonlinear Processes in Geophysics
+    volume: 31
+    year: 2024
+    start: 247
+    doi: 10.5194/npg-31-247-2024
+  - type: article
+    authors:
+      - family-names: Rasp
+        given-names: Stephan
+    title: "WeatherBench 2: A benchmark for the next generation of data-driven global weather models"
+    journal: Journal of Advances in Modeling Earth Systems
+    volume: 16
+    year: 2024
+    doi: 10.1029/2023MS004019
+  - type: article
+    authors:
+      - family-names: Nipen
+        given-names: Thomas N.
+    title: "Verif: A weather-prediction verification tool for effective product development"
+    journal: Bulletin of the American Meteorological Society
+    volume: 104
+    year: 2023
+    doi: 10.1175/BAMS-D-22-0253.1

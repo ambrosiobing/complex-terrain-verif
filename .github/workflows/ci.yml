@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install (dev extras, no GRIB, no credentials)
+        run: pip install -e ".[dev]"
+      - name: Guard against committed credentials
+        run: |
+          if grep -rEn "FROST_CLIENT_ID=[A-Za-z0-9-]{8,}" --include=*.py --include=*.yaml --include=*.yml --include=*.ipynb --include=*.md . ; then
+            echo "A literal Frost client id is committed"; exit 1; fi
+      - name: Package info
+        run: afv info
+      - name: Build synthetic fixtures
+        run: afv fixtures --out data/fixtures
+      - name: Offline end-to-end on fixtures
+        run: |
+          afv match  --config configs/fixtures.yaml
+          afv score  --config configs/fixtures.yaml
+          afv diag   --config configs/fixtures.yaml
+          afv report --config configs/fixtures.yaml
+          afv diff results/fixtures/scores_aifs-single.parquet results/fixtures/scores_ifs.parquet
+      - name: Unit tests
+        run: pytest -q
