@@ -77,13 +77,37 @@ def cmd_serve(args):
     except ImportError:
         print("the server needs the 'server' extra: pip install -e '.[server]'", file=sys.stderr)
         return 2
+    import os
+    import socket
+
     from .server import create_app
     root = Path(args.root)
     if not root.is_dir():
         print(f"no results directory at {root}; run `afv score` first", file=sys.stderr)
         return 2
+
+    # Refuse to start on a port something else already holds, and say what to do. Without
+    # this the second server fails to bind, exits into the scrollback, and the browser
+    # keeps talking to the first one, which may be running older code: the page looks
+    # broken while the file on disk is correct.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(1.0)
+        if probe.connect_ex((args.host, args.port)) == 0:
+            print(f"something is already listening on {args.host}:{args.port}.\n"
+                  f"Stop it first, or use --port, otherwise the browser keeps talking to it:\n"
+                  f"  Stop-Process -Id (Get-NetTCPConnection -LocalPort {args.port} "
+                  f"-State Listen).OwningProcess -Force", file=sys.stderr)
+            return 2
+
     print(f"serving {root.resolve()} on http://{args.host}:{args.port} (read only)")
-    uvicorn.run(create_app(root), host=args.host, port=args.port, log_level="info")
+    if args.reload:
+        # Reload needs an import string rather than an instance, so the root travels in
+        # the environment, which is where the application reads it from by default.
+        os.environ["AFV_RESULTS_ROOT"] = str(root.resolve())
+        uvicorn.run("afv.server:app", host=args.host, port=args.port,
+                    reload=True, reload_dirs=[str(Path(__file__).parent)], log_level="info")
+    else:
+        uvicorn.run(create_app(root), host=args.host, port=args.port, log_level="info")
     return 0
 
 
@@ -318,7 +342,7 @@ def main(argv=None) -> int:
     sub.add_parser("info", help="versions and optional dependencies").set_defaults(fn=cmd_info)
     s = sub.add_parser("fixtures", help="write synthetic fixtures for offline runs"); s.add_argument("--out", default="data/fixtures"); s.set_defaults(fn=cmd_fixtures)
     sub.add_parser("sources", help="observation sources, what each serves and what it refuses").set_defaults(fn=cmd_sources)
-    s = sub.add_parser("serve", help="read-only service over an existing results directory"); s.add_argument("--root", default="results"); s.add_argument("--host", default="127.0.0.1"); s.add_argument("--port", type=int, default=8000); s.set_defaults(fn=cmd_serve)
+    s = sub.add_parser("serve", help="read-only service over an existing results directory"); s.add_argument("--root", default="results"); s.add_argument("--host", default="127.0.0.1"); s.add_argument("--port", type=int, default=8000); s.add_argument("--reload", action="store_true", help="restart on source changes, for development"); s.set_defaults(fn=cmd_serve)
     s = sub.add_parser("stations", help="select and freeze stations (network)"); s.add_argument("--config", default="configs/default.yaml"); s.add_argument("--source"); s.add_argument("--no-quality", action="store_true"); s.set_defaults(fn=cmd_stations)
     s = sub.add_parser("elements", help="resolve Frost element ids (network)"); s.add_argument("ids", nargs="*"); s.set_defaults(fn=cmd_elements)
     s = sub.add_parser("fetch", help="download and standardise ECMWF open data (network)"); s.add_argument("--config", default="configs/default.yaml"); s.add_argument("--model", action="append"); s.add_argument("--latest", action="store_true"); s.add_argument("--download-only", action="store_true"); s.set_defaults(fn=cmd_fetch)

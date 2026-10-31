@@ -464,3 +464,37 @@ def test_prefilled_links_resolve_on_this_instance(client):
     for pattern in (r'href="(/runs/[^"]*nowcast[^"]*)"', r'href="(/runs/[^"]*forecast[^"]*)"'):
         href = re.search(pattern, page).group(1).replace("&amp;", "&")
         assert client.get(href).status_code == 200, href
+
+
+# The command refuses to start beside another server -------------------------------------
+
+def test_serve_refuses_a_port_that_is_already_held(tmp_path, capsys, monkeypatch):
+    """The failure this prevents cost a confused half hour.
+
+    A second server on a held port fails to bind, exits into the scrollback, and the
+    browser keeps talking to the first one, which may be running older code. The page
+    looks broken while the file on disk is correct, and nothing says so.
+    """
+    import socket
+
+    from afv.cli import main
+
+    (tmp_path / "results").mkdir()
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+    port = listener.getsockname()[1]
+    try:
+        code = main(["serve", "--root", str(tmp_path / "results"), "--port", str(port)])
+    finally:
+        listener.close()
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "already listening" in err
+    assert "Stop-Process" in err      # it says how to clear it, not merely that it is held
+
+
+def test_serve_refuses_a_results_directory_that_is_not_there(tmp_path, capsys):
+    from afv.cli import main
+    assert main(["serve", "--root", str(tmp_path / "nope")]) == 2
+    assert "no results directory" in capsys.readouterr().err
