@@ -2,8 +2,8 @@
 
 The pipeline downstream of this package (match, score, diagnostics, report) does not know
 which country an observation came from. It knows the two tables in ``afv.schema``:
-``STATION_COLUMNS`` and ``OBS_COLUMNS``. A source's whole job is to produce those two
-tables from whatever shape its provider happens to serve.
+``STATION_COLUMNS`` and ``OBS_COLUMNS``. A source has one responsibility: produce those
+two tables from whatever shape its provider happens to serve.
 
 Adding a country is therefore a module here plus a row in ``SOURCES``, not a second
 pipeline.

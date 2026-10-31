@@ -29,9 +29,35 @@ src/afv/sources/  one module per observation network behind one interface:
                   peakweather (Switzerland), frost (Norway)
 configs/          alps.yaml, default.yaml (Nordic), fixtures.yaml (offline CI)
 notebooks/        00 bootstrap, 01 fetch, 02 build dataset, 03 verify, 04 report, 05 inference
-docs/             METHODOLOGY, DIAGRAMS, RELATED_WORK, WHAT_THIS_DOES_NOT_SHOW, DEPLOY
+docs/             METHODOLOGY, DIAGRAMS, BENCHMARKS, RELATED_WORK,
+                  WHAT_THIS_DOES_NOT_SHOW, DEPLOY, figures/
+tools/            make_doc_figures.py, which regenerates every image in the docs
 data/             DATASHEET, static station lists, cache (gitignored)
 tests/            59 offline tests; network tests deselected by default
+```
+
+## Design, at a glance
+
+Eight Mermaid views in [docs/DIAGRAMS.md](docs/DIAGRAMS.md), rendered by GitHub with no
+toolchain: the two-domain architecture, the run as a sequence, the data contracts and the
+source interface as class diagrams, two decision trees (whether a variable may be scored
+at all, and how a forecast is brought down to a station), the stack with each external
+project's licence, and the states a cached download is allowed to be in.
+
+What is measured, and the metric definitions, are in
+[docs/BENCHMARKS.md](docs/BENCHMARKS.md), together with the synthetic fixture run that
+demonstrates the pipeline end to end. No learned nowcasting model is implemented here and
+[docs/NOWCASTING.md](docs/NOWCASTING.md) says so plainly, with the architecture one would
+need and the three preconditions before it would be worth adding; the only nowcast in the
+repository is persistence, and it is a baseline.
+
+```mermaid
+flowchart LR
+    OBS["station observations<br/>Alps or Nordics"] --> M
+    FCST["AI and physics forecasts<br/>same initial conditions"] --> M
+    M["match at the point,<br/>correct for height"] --> S["score against<br/>persistence and climatology"]
+    S --> C["condition on terrain,<br/>on the tail, on the regime"]
+    C --> R["report, with intervals<br/>and sample sizes first"]
 ```
 
 ## 60-second offline quickstart, no credentials and no downloads
