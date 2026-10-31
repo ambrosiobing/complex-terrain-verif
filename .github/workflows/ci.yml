@@ -9,6 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
     steps:
@@ -16,16 +17,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install (dev extras, no GRIB, no credentials)
-        run: pip install -e ".[dev]"
+          cache: pip
+
+      # The server extra is installed deliberately. Without it the service tests skip at
+      # import and the pipeline reports green over a suite that never ran them.
+      - name: Install (dev and server extras; no GRIB, no credentials)
+        run: pip install -e ".[dev,server]"
+
       - name: Guard against committed credentials
         run: |
           if grep -rEn "FROST_CLIENT_ID=[A-Za-z0-9-]{8,}" --include=*.py --include=*.yaml --include=*.yml --include=*.ipynb --include=*.md . ; then
-            echo "A literal Frost client id is committed"; exit 1; fi
+            echo "A literal client id is committed"; exit 1; fi
+
+      # A suite that can shrink to nothing and still pass is not a check. This fails when
+      # a module stops being collected, which is exactly what an uninstalled extra does.
+      - name: The suite is not silently short
+        run: |
+          n=$(pytest --collect-only -q | tail -1 | grep -oE '^[0-9]+')
+          echo "collected ${n:-0} tests"
+          test "${n:-0}" -ge 120
+
       - name: Package info
         run: afv info
+
       - name: Build synthetic fixtures
         run: afv fixtures --out data/fixtures
+
       - name: Offline end-to-end on fixtures
         run: |
           afv match  --config configs/fixtures.yaml
@@ -33,5 +50,58 @@ jobs:
           afv diag   --config configs/fixtures.yaml
           afv report --config configs/fixtures.yaml
           afv diff results/fixtures/scores_aifs-single.parquet results/fixtures/scores_ifs.parquet
+
+      - name: Sources, and what each refuses
+        run: afv sources
+
+      - name: Lint
+        run: ruff check src tests tools
+
       - name: Unit tests
         run: pytest -q
+
+  # The self-hosting claim is only worth making if the container is known to build and
+  # answer. This job is the difference between documenting a deployment and having one.
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Produce a run for the service to serve
+        run: |
+          pip install -e ".[dev]"
+          afv fixtures --out data/fixtures
+          afv match --config configs/fixtures.yaml
+          afv score --config configs/fixtures.yaml
+
+      - name: Build the image
+        run: docker build -t complex-terrain-verif:ci .
+
+      - name: Run it, read only, and ask it three questions
+        run: |
+          docker run -d --name verif -p 8000:8000 \
+            -v "$PWD/results:/data/results:ro" complex-terrain-verif:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health > /dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/health | tee /tmp/health.json
+          grep -q '"status":"ok"' /tmp/health.json
+          # The landing page must render, and it must not reach outside for anything.
+          curl -fsS http://127.0.0.1:8000/ -o /tmp/home.html
+          grep -q "complex-terrain-verif" /tmp/home.html
+          if grep -qiE "https?://(cdn|fonts|unpkg|cdnjs|jsdelivr)" /tmp/home.html; then
+            echo "the page loads something from elsewhere; it must be self-contained"; exit 1; fi
+          # And a run it was given must be visible through the mount.
+          curl -fsS "http://127.0.0.1:8000/runs" | grep -q "fixtures"
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs verif || true
+
+      - name: Stop
+        if: always()
+        run: docker rm -f verif || true

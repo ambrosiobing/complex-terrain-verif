@@ -73,10 +73,11 @@ ROADMAP: tuple[Item, ...] = (
          "Scores split by blocked and zonal days, so a stable winter inversion is not averaged "
          "together with a convective summer afternoon.",
          "reanalysis geopotential, and a blocking index"),
-    Item("The service tested in continuous integration", "next",
-         "These routes currently skip in the pipeline because the extra is not installed there, "
-         "so a suite that shrinks to nothing would still pass.",
-         "one line in the workflow, and a guard on the collected test count"),
+    Item("The service and the container tested in continuous integration", "done",
+         "The service extra is installed in the pipeline, so its tests run rather than skip, "
+         "and a guard fails the build if the collected test count drops. A second job builds "
+         "the image, runs it against a mounted run, and checks the page renders and reaches "
+         "outside for nothing."),
     Item("A scheduled archive", "next",
          "Open forecast data is kept for about four days, so an unattended daily fetch is what "
          "turns a short window into a season.",
