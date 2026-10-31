@@ -1,0 +1,69 @@
+# Alpine domain: Switzerland at the centre, with the French, Italian and German Alpine
+# stations to be added as their national sources are confirmed. Austria is out of scope.
+#
+# Observations come from the MeteoSwiss PeakWeather dataset rather than from a live API,
+# so this domain needs no credential and no daily harvesting, and the archive reaches back
+# to 2017 on the first run.
+name: alps
+
+source: peakweather
+
+paths:
+  cache_dir: data/cache
+  fields_dir: data/fields/alps
+  obs_dir: data/obs/alps
+  stations_csv: data/static/stations_alps.csv
+  orography_nc: data/static/orog_alps.nc
+  results_dir: results/alps
+
+models: [aifs-single, ifs]
+baselines:
+  persistence: true
+  climatology: true
+  lagged_ensemble: {enabled: false, n_members: 3, step_h: 6}
+
+# Mean sea level pressure is deliberately absent. PeakWeather serves pressure as QFE at
+# the station's own altitude, which is a different quantity from the model's msl field;
+# see the reason recorded in src/afv/sources/peakweather.py.
+variables:
+  t2m:  {model_param: "2t", obs_element: "temperature", unit: "K", obs_unit: "degC", level_m: 2}
+  ws10: {model_param: null, obs_element: "wind_speed", unit: "m/s", obs_unit: "m/s", level_m: 10, derived_from: ["10u", "10v"]}
+
+runs:
+  init_hours: [0, 12]
+  window_start: "2026-10-01"
+  window_end: "2026-10-28"
+  lead_hours: [6, 12, 18, 24, 30, 36, 42, 48, 60, 72]
+
+stations:
+  # The Swiss bounding box, a little wider than the border so a neighbouring Alpine
+  # station is already inside it when the French and Italian sources arrive.
+  bbox: {lon_min: 5.8, lon_max: 10.6, lat_min: 45.7, lat_max: 47.9}
+  min_lat: 45.7
+  max_n: 60
+  # Rain gauges report precipitation only; the first release scores temperature and wind.
+  station_types: [meteo_station]
+  classes: {mountain_min_elev_m: 1500}
+
+interp:
+  methods: [nearest, bilinear]
+  primary: {t2m: bilinear, ws10: bilinear}
+
+# The correction that decides this domain. A fixed rate is wrong under a valley inversion,
+# which is the case the Alpine track exists to measure, so the result is reported next to
+# the uncorrected value rather than instead of it.
+lapse:
+  enabled: true
+  gamma_k_per_m: 0.0065
+  fallback_if_no_orography: disable
+
+time: {tz: UTC, match_tolerance_min: 0}
+accumulation: {min_hours_present: 22}
+thresholds_mm_24h: [1, 5, 10]
+qc: {accept_codes: [0, 1], exclude_codes_always: [6, 7]}
+missing: {min_coverage: 0.5, pairwise_complete: true}
+bootstrap: {block_col: valid_date, n_resamples: 500, ci: 0.90, seed: 0}
+
+# Terrain is a stratum here, which it is not in the Nordic configuration.
+strata: [all, station_class, valid_hour, obs_tercile]
+diagnostics: {tail_quantile: 0.90, activity_variable: t2m}

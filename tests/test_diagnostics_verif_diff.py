@@ -5,8 +5,8 @@ import pytest
 from afv.diagnostics import qq, stratify, tail_conditional, variance_ratio
 from afv.diff import diff_tables, summarise
 from afv.schema import ScoreTable
-from afv.verif_bridge import VERIF_COLUMNS, to_verif_text, verif_available, verif_mae_text
 from afv.scores import mae
+from afv.verif_bridge import VERIF_COLUMNS, to_verif_text, verif_available, verif_mae_text
 
 
 def _frame(smooth=0.5, n=200, seed=0):

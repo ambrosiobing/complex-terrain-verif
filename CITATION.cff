@@ -1,21 +1,23 @@
 cff-version: 1.2.0
-title: "aifs-frost-verif: station verification of open AI weather forecasts over northern Norway"
-message: "If you use this software, please cite it and the works it builds on (see README, Related work)."
+title: "complex-terrain-verif: station verification of open AI weather forecasts in complex terrain"
+message: "If you use this software, please cite it and the works it builds on (see docs/RELATED_WORK.md)."
 type: software
 authors:
   - family-names: Pagaran
     given-names: Joseph Ambrose
-    orcid: "https://orcid.org/0000-0000-0000-0000"
-version: 0.1.0
-date-released: 2026-09-13
+    orcid: "https://orcid.org/0000-0001-7595-9070"
+version: 0.2.0
+date-released: 2026-10-31
 license: Apache-2.0
-repository-code: "https://github.com/ambrosiobing/aifs-frost-verif"
+repository-code: "https://github.com/ambrosiobing/complex-terrain-verif"
 keywords:
   - forecast verification
+  - complex terrain
+  - station observations
   - AIFS
-  - Anemoi
+  - PeakWeather
   - Frost API
-  - MET Norway
+  - weather regimes
 references:
   - type: article
     authors:
@@ -49,3 +51,32 @@ references:
     volume: 104
     year: 2023
     doi: 10.1175/BAMS-D-22-0253.1
+  - type: data
+    authors:
+      - family-names: Zambon
+        given-names: Daniele
+      - family-names: Cattaneo
+        given-names: Michele
+      - family-names: Marisca
+        given-names: Ivan
+      - family-names: Bhend
+        given-names: Jonas
+      - family-names: Nerini
+        given-names: Daniele
+      - family-names: Alippi
+        given-names: Cesare
+    title: "PeakWeather: MeteoSwiss weather station measurements for spatiotemporal deep learning"
+    year: 2025
+    url: "https://arxiv.org/abs/2506.13652"
+  - type: article
+    authors:
+      - family-names: Tibaldi
+        given-names: Stefano
+      - family-names: Molteni
+        given-names: Franco
+    title: "On the operational predictability of blocking"
+    journal: Tellus A
+    volume: 42
+    year: 1990
+    start: 343
+    doi: 10.3402/tellusa.v42i3.11882

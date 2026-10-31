@@ -1,0 +1,80 @@
+# conda-forge environment, because the geoscience stack does not install reliably from
+# wheels on Windows: eccodes is a C library, and gridpp and titanlib are C++ with bindings.
+#
+# Layout: the default environment is pure Python and always solves. Everything with a
+# compiled dependency is a named feature, so a provider that drops a Windows build breaks
+# one environment and not the repository.
+#
+#   pixi install                 the default environment
+#   pixi run test                offline tests
+#   pixi run -e full lint        everything, including the compiled extras
+#
+# requirements.txt stays the pinned reproduction record and environment.yml the plain
+# conda fallback; this file is the one with a lockfile.
+
+[project]
+name = "complex-terrain-verif"
+version = "0.2.0"
+description = "Station verification of open AI weather forecasts in complex terrain: the Alps and the Nordics"
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64"]
+
+[dependencies]
+python = ">=3.10,<3.13"
+numpy = ">=1.24"
+pandas = ">=2.0"
+pyarrow = ">=14"
+xarray = ">=2023.6"
+netcdf4 = ">=1.6"
+scipy = ">=1.10"
+matplotlib-base = ">=3.7"
+pyyaml = ">=6"
+requests = ">=2.31"
+python-dotenv = ">=1.0"
+
+[pypi-dependencies]
+complex-terrain-verif = { path = ".", editable = true }
+
+[tasks]
+test = "pytest -q"
+lint = "ruff check src tests"
+fixtures = "afv fixtures --out data/fixtures"
+smoke = "afv fixtures --out data/fixtures && afv match --config configs/fixtures.yaml && afv score --config configs/fixtures.yaml"
+
+[feature.dev.dependencies]
+pytest = ">=8"
+ruff = ">=0.6"
+pre-commit = ">=3.8"
+
+# GRIB decoding. eccodes is the reason this file exists.
+[feature.grib.dependencies]
+eccodes = ">=2.35"
+cfgrib = ">=0.9.11"
+
+[feature.grib.pypi-dependencies]
+ecmwf-opendata = ">=0.3"
+
+# Spatial quality control (MET Norway). Compiled; confirm the build exists for the
+# platform before relying on it, and fall back to range checks if it does not.
+[feature.qc.dependencies]
+titanlib = "*"
+
+# Elevation-aware downscaling (MET Norway). Same caveat as above.
+[feature.downscale.dependencies]
+gridpp = "*"
+
+# Alpine domain: the MeteoSwiss station dataset, and metrics on xarray.
+[feature.alps.pypi-dependencies]
+peakweather = "*"
+xskillscore = "*"
+
+# Circulation classification from reanalysis.
+[feature.regimes.pypi-dependencies]
+cdsapi = "*"
+contrack = "*"
+
+[environments]
+default = { features = ["dev"], solve-group = "base" }
+grib = { features = ["dev", "grib"], solve-group = "base" }
+alps = { features = ["dev", "alps", "regimes"], solve-group = "base" }
+full = { features = ["dev", "grib", "alps", "regimes", "qc", "downscale"] }

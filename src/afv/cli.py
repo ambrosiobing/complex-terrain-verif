@@ -47,12 +47,54 @@ def cmd_fixtures(args):
     return 0
 
 
+def cmd_sources(args):
+    """What each domain can serve, and what it refuses and why."""
+    from .sources import available, get_source
+    for name in available():
+        print(f"== {name}")
+        try:
+            mod = get_source(name)
+        except Exception as e:
+            print(f"   unavailable: {e}")
+            continue
+        params = getattr(mod, "PARAMETERS", None)
+        if params is None:
+            print(f"   serves: {', '.join(getattr(mod, 'VARIABLES', ()))}")
+            continue
+        served = [k for k, v in params.items() if v is not None]
+        refused = [k for k, v in params.items() if v is None]
+        print(f"   serves: {', '.join(served)}")
+        for var in refused:
+            why = getattr(mod, "NOT_MAPPED_REASON", {}).get(var, "not mapped")
+            print(f"   refuses {var}: {why}")
+    return 0
+
+
+def _source_name(cfg, args) -> str:
+    return getattr(args, "source", None) or cfg.get("source", "frost")
+
+
 def cmd_stations(args):
     _load_env()
-    from .stations import available_series, fetch_sources, freeze, select_stations
     from .fetch_obs import ELEMENTS
+    from .stations import available_series, fetch_sources, freeze, freeze_all, select_stations
     cfg = load_config(args.config)
     st = cfg["stations"]
+
+    name = _source_name(cfg, args)
+    if name != "frost":
+        from .sources import get_source
+        mod = get_source(name)
+        sel = mod.stations(cfg.get_path("cache_dir"),
+                           mountain_min_elev_m=float(st["classes"]["mountain_min_elev_m"]),
+                           bbox=st.get("bbox"), max_n=st.get("max_n"),
+                           station_types=st.get("station_types"))
+        out = freeze_all(sel, cfg.get_path("stations_csv"))
+        print(f"{len(sel)} stations from {name} frozen to {out}")
+        cols = [c for c in ("station_id", "name", "lat", "lon", "elev_m", "station_class") if c in sel.columns]
+        print(sel[cols].to_string(index=False))
+        return 0
+
     src = fetch_sources(None, counties=st.get("counties"), bbox=st.get("bbox"))
     print(f"{len(src)} SensorSystem sources returned")
     elements = [ELEMENTS[v]["elementId"] for v in enabled_variables(cfg) if v in ELEMENTS]
@@ -119,8 +161,15 @@ def cmd_obs(args):
     runs = cfg["runs"]
     t0 = pd.Timestamp(runs["window_start"], tz="UTC") - pd.Timedelta(days=1)
     t1 = pd.Timestamp(runs["window_end"], tz="UTC") + pd.Timedelta(hours=max(runs["lead_hours"]) + 24)
-    obs = fetch_observations(None, stations["station_id"].tolist(), variables, t0, t1, cfg.get_path("cache_dir"),
-                             qc_accept=set(cfg["qc"]["accept_codes"]))
+
+    name = _source_name(cfg, args)
+    if name != "frost":
+        from .sources import get_source
+        obs = get_source(name).observations(cfg.get_path("cache_dir"), stations["station_id"].tolist(),
+                                            variables, t0, t1)
+    else:
+        obs = fetch_observations(None, stations["station_id"].tolist(), variables, t0, t1, cfg.get_path("cache_dir"),
+                                 qc_accept=set(cfg["qc"]["accept_codes"]))
     out = save_obs(obs, cfg.get_path("obs_dir") / "obs.parquet")
     print(f"{len(obs)} observation rows ({int(obs.get('qc_accepted', pd.Series(dtype=bool)).sum())} with accepted qc) -> {out}")
     return 0
@@ -251,10 +300,11 @@ def main(argv=None) -> int:
 
     sub.add_parser("info", help="versions and optional dependencies").set_defaults(fn=cmd_info)
     s = sub.add_parser("fixtures", help="write synthetic fixtures for offline runs"); s.add_argument("--out", default="data/fixtures"); s.set_defaults(fn=cmd_fixtures)
-    s = sub.add_parser("stations", help="select and freeze Frost stations (network)"); s.add_argument("--config", default="configs/default.yaml"); s.add_argument("--no-quality", action="store_true"); s.set_defaults(fn=cmd_stations)
+    sub.add_parser("sources", help="observation sources, what each serves and what it refuses").set_defaults(fn=cmd_sources)
+    s = sub.add_parser("stations", help="select and freeze stations (network)"); s.add_argument("--config", default="configs/default.yaml"); s.add_argument("--source"); s.add_argument("--no-quality", action="store_true"); s.set_defaults(fn=cmd_stations)
     s = sub.add_parser("elements", help="resolve Frost element ids (network)"); s.add_argument("ids", nargs="*"); s.set_defaults(fn=cmd_elements)
     s = sub.add_parser("fetch", help="download and standardise ECMWF open data (network)"); s.add_argument("--config", default="configs/default.yaml"); s.add_argument("--model", action="append"); s.add_argument("--latest", action="store_true"); s.add_argument("--download-only", action="store_true"); s.set_defaults(fn=cmd_fetch)
-    s = sub.add_parser("obs", help="download Frost observations (network)"); s.add_argument("--config", default="configs/default.yaml"); s.set_defaults(fn=cmd_obs)
+    s = sub.add_parser("obs", help="download observations (network)"); s.add_argument("--config", default="configs/default.yaml"); s.add_argument("--source"); s.set_defaults(fn=cmd_obs)
     s = sub.add_parser("match", help="build the matched ML-ready dataset"); s.add_argument("--config", default="configs/default.yaml"); s.set_defaults(fn=cmd_match)
     s = sub.add_parser("score", help="score the matched dataset"); s.add_argument("--config", default="configs/default.yaml"); s.set_defaults(fn=cmd_score)
     s = sub.add_parser("diag", help="realism diagnostics"); s.add_argument("--config", default="configs/default.yaml"); s.set_defaults(fn=cmd_diag)

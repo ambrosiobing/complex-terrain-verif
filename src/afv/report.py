@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
@@ -28,7 +29,10 @@ def table_by_lead(rows: pd.DataFrame, variable: str, metric: str) -> str:
         cells = []
         for m in models:
             try:
-                v = piv.loc[lead, ("value", m)]; lo = piv.loc[lead, ("ci_lo", m)]; hi = piv.loc[lead, ("ci_hi", m)]; n = piv.loc[lead, ("n", m)]
+                v = piv.loc[lead, ("value", m)]
+                lo = piv.loc[lead, ("ci_lo", m)]
+                hi = piv.loc[lead, ("ci_hi", m)]
+                n = piv.loc[lead, ("n", m)]
                 cells.append(f"{_fmt(v)} [{_fmt(lo)}, {_fmt(hi)}] n={int(n)}")
             except KeyError:
                 cells.append("")

@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from afv.match import (accumulate_obs, deaccumulate, interp_to_stations, lapse_correct, match_field,
-                       pairwise_complete)
+from afv.match import accumulate_obs, deaccumulate, interp_to_stations, lapse_correct, match_field, pairwise_complete
 
 
 def test_nearest_on_node(linear_field):

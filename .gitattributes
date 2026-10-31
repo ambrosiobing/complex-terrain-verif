@@ -1,0 +1,19 @@
+# LF everywhere, whatever the laptop: authored on Windows, run in CI on Linux, and a
+# carriage return inside a shell script is a failure that names nothing.
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+
+# Binary, never diffed or merged.
+*.nc binary
+*.parquet binary
+*.grib binary
+*.grib2 binary
+*.png binary
+*.jpg binary
+*.pdf binary
+*.ipynb -diff

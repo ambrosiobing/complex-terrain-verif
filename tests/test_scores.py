@@ -1,9 +1,21 @@
 import numpy as np
 import pandas as pd
 
-from afv.scores import (add_strata, bias, block_bootstrap, contingency, crps_ensemble, ets, fbi, mae, pod, far,
-                        rmse, spread_skill, threshold_scores)
-
+from afv.scores import (
+    add_strata,
+    bias,
+    block_bootstrap,
+    contingency,
+    crps_ensemble,
+    ets,
+    far,
+    fbi,
+    mae,
+    pod,
+    rmse,
+    spread_skill,
+    threshold_scores,
+)
 
 F = np.array([1.0, 2.0, 3.0, 4.0])
 O = np.array([1.5, 1.5, 3.5, 3.0])   # errors -0.5, 0.5, -0.5, 1.0

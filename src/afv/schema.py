@@ -105,7 +105,7 @@ class ScoreTable:
         return path
 
     @classmethod
-    def from_parquet(cls, path: str | Path) -> "ScoreTable":
+    def from_parquet(cls, path: str | Path) -> ScoreTable:
         path = Path(path)
         rows = pd.read_parquet(path)
         meta_path = path.with_suffix(".meta.json")

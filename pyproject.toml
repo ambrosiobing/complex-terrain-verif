@@ -3,14 +3,14 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aifs-frost-verif"
-version = "0.1.0"
-description = "Station verification of open AI weather forecasts (ECMWF AIFS) against MET Norway Frost observations, Bergen northwards. Same initial conditions, fair baselines, honest scores."
+name = "complex-terrain-verif"
+version = "0.2.0"
+description = "Station verification of open AI weather forecasts in complex terrain: the Alps and the Nordics. Same initial conditions, fair baselines, honest scores."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Joseph Ambrose Pagaran" }]
-keywords = ["weather", "verification", "aifs", "anemoi", "frost", "met-norway", "machine-learning", "forecast-evaluation"]
+keywords = ["weather", "verification", "complex-terrain", "aifs", "anemoi", "peakweather", "frost", "meteoswiss", "met-norway", "machine-learning", "forecast-evaluation"]
 dependencies = [
     "numpy>=1.24",
     "pandas>=2.0",
@@ -25,14 +25,22 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "ruff>=0.6"]
 grib = ["ecmwf-opendata>=0.3", "cfgrib>=0.9.11", "eccodes>=2.35"]
 earthkit = ["ecmwf-opendata>=0.3", "earthkit-data>=0.10"]
 verif = ["verif>=1.3"]
 anemoi = ["anemoi-inference>=0.5", "torch>=2.2"]
+# Alpine domain: the MeteoSwiss station dataset, and metrics on labelled arrays.
+alps = ["peakweather>=0.1", "xskillscore>=0.0.24"]
+# Circulation classification: reanalysis access and a blocking index.
+regimes = ["cdsapi>=0.7", "contrack>=0.3"]
+# Spatial quality control and elevation-aware downscaling, both compiled.
+# Prefer conda-forge for these; see pixi.toml.
+qc = ["titanlib>=0.3"]
+downscale = ["gridpp>=0.7"]
 
 [project.urls]
-Homepage = "https://github.com/ambrosiobing/aifs-frost-verif"
+Homepage = "https://github.com/ambrosiobing/complex-terrain-verif"
 
 [project.scripts]
 afv = "afv.cli:main"
@@ -43,7 +51,23 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "network: needs internet and FROST_CLIENT_ID (deselected in CI)",
+    "network: needs internet and credentials (deselected by default)",
     "grib: needs eccodes/cfgrib installed",
+    "optdep: needs an optional compiled dependency (titanlib, gridpp, contrack)",
 ]
 addopts = "-m 'not network and not grib'"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+exclude = ["build", "dist", ".venv", "notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "B008", "B905", "UP007", "UP035", "UP006", "E731", "E741"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "E712"]
+# The subparser table is one statement per subcommand, deliberately, so the whole
+# command surface reads as a table rather than as sixty scattered lines.
+"src/afv/cli.py" = ["E702"]

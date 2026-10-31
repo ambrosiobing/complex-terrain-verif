@@ -12,7 +12,6 @@ import pandas as pd
 
 from .schema import SCORE_COLUMNS, ScoreTable
 
-
 # Deterministic ------------------------------------------------------------------------
 
 def bias(f: np.ndarray, o: np.ndarray) -> float:
@@ -154,7 +153,7 @@ def add_strata(matched: pd.DataFrame, tail_q: float = 0.90) -> pd.DataFrame:
     m["valid_date"] = vt.dt.strftime("%Y-%m-%d")
     m["valid_hour"] = vt.dt.hour.astype(int)
     m["obs_tercile"] = "na"
-    for var, grp in m.groupby("variable"):
+    for _var, grp in m.groupby("variable"):
         o = grp["obs"].dropna()
         if len(o) >= 3:
             q1, q2 = o.quantile([1 / 3, 2 / 3]).values

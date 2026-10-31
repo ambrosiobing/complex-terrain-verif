@@ -21,8 +21,14 @@ results/figures/
 results/fixtures/
 results/*/figures/
 
+# the commit message is written to a file, because PowerShell 5.1 has no usable
+# heredoc and `git commit -F` is the way in. It is scratch, never a tracked file.
+commit-message.txt
+
 # python
 .venv/
+.pixi/
+.ruff_cache/
 __pycache__/
 *.pyc
 *.egg-info/

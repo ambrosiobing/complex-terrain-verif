@@ -133,6 +133,20 @@ def freeze(df: pd.DataFrame, path: str | Path) -> Path:
     return path
 
 
+def freeze_all(df: pd.DataFrame, path: str | Path) -> Path:
+    """Freeze the schema columns first, then whatever else the source attached.
+
+    The Alpine source attaches terrain descriptors to each station, and the claim that
+    forecast error depends on terrain cannot be tested if the writer drops them. The
+    schema columns keep their order so ``load_frozen`` is unaffected.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    extras = [c for c in df.columns if c not in STATION_COLUMNS]
+    df[STATION_COLUMNS + extras].to_csv(path, index=False)
+    return path
+
+
 def load_frozen(path: str | Path) -> pd.DataFrame:
     df = pd.read_csv(path)
     missing = [c for c in STATION_COLUMNS if c not in df.columns]
