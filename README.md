@@ -114,9 +114,16 @@ afv serve --root results
 
 or `docker compose up -d`, which binds to the loopback address, mounts the results
 read-only, drops every capability and runs as a non-root user. The service returns score
-tables, the station list, the manifest, the report and the figures as JSON and files; it
-runs no model, fetches nothing and has no write path. Queries go through DuckDB when it is
-installed and pandas when it is not, and a test asserts the two agree.
+tables, the station list, the manifest, the report and the figures as JSON and files.
+Queries go through DuckDB when it is installed and pandas when it is not, and a test
+asserts the two agree.
+
+It will also **compute a baseline forecast on request**: persistence and hour-of-day
+climatology, from the observations in a run, through `/runs/{run}/nowcast`. Those are real
+forecast methods, they need no model weights and no accelerator, and they are what every
+score here is measured against. It does **not** run a machine-learning model: those values
+are retrieved, and `/runs/{run}/forecast` marks each one `computed_here: false`. Every
+prediction response carries its own limitations rather than leaving them to a footnote.
 
 [docs/SERVING.md](docs/SERVING.md) has the routes, the two sane ways to expose it, and an
 honest ladder of what a fuller weather server would add at each step and what hardware
@@ -140,6 +147,14 @@ Every score table carries the dataset hash, which is an order-independent conten
 ## Related work this stands on
 
 This repository is an integration, not an invention. The quality control, the elevation-aware downscaling, the metrics, the blocking index and the Swiss observations are all other people's work, named with their licences in [docs/RELATED_WORK.md](docs/RELATED_WORK.md). What is new here is the combination: station-level verification in complex terrain, conditioned on terrain and on circulation, across two mountain and high-latitude domains.
+
+## History
+
+Begun on **Monday 7 September 2026** as a single-domain prototype: station verification of
+open AI forecasts over northern Norway, with the matching, scoring and diagnostics that
+everything here still rests on. Widened on **Saturday 31 October 2026** to two domains
+behind one source interface, with the Alpine observations, the shared HTTP client, the
+read-only service and this documentation. `git log` carries the dates.
 
 ## Licence and citation
 

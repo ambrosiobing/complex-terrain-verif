@@ -27,8 +27,32 @@ Then `http://127.0.0.1:8000/health`, and the interactive documentation at
 | `GET /runs/{run}/scores` | score rows, filtered by variable, model, metric, stratum, lead |
 | `GET /runs/{run}/manifest` | dataset hash, row count, station count, period |
 | `GET /runs/{run}/stations` | the stations in that run |
+| `GET /runs/{run}/forecast` | what every model predicted for one station, beside the observation |
+| `GET /runs/{run}/nowcast` | a baseline forecast **computed on request** from this run's observations |
 | `GET /runs/{run}/report` | the run's report as Markdown |
 | `GET /runs/{run}/figures/{name}` | a figure from that run |
+
+### What is computed here, and what is only retrieved
+
+This is the distinction the service exists to keep honest, so it is in the response body
+and not only in this page.
+
+| Method | Where it comes from | Needs |
+|---|---|---|
+| persistence | **computed on request**, from the last observation at the station | nothing |
+| hour-of-day climatology | **computed on request**, from the observations in the run | nothing |
+| the machine-learning and physics forecasts | **retrieved**: produced by their providers, fetched and matched offline | a provider, and earlier a fetch |
+
+`/nowcast` is the only route that calculates a prediction. Both of its methods are real
+forecasts and neither is a learned model; they are the baselines every score in this
+repository is measured against, which is why a model that cannot beat them is not worth
+serving. Every response carries a `limitations` list saying so, and each point of the
+climatology series says whether it used an hour-of-day mean or fell back to the overall
+mean because the run has no observations at that hour. A flat line that does not explain
+itself looks like a broken model rather than a missing hour.
+
+`/forecast` returns a `provenance` block marking each model `computed_here: false`. Running
+a model inside this service is step three of the ladder below and is not implemented.
 
 Queries go through DuckDB when it is installed, which reads parquet without loading it and
 matters once a run reaches millions of rows, and through pandas when it is not. A test

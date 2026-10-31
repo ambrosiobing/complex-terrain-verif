@@ -6,6 +6,11 @@ authors:
   - family-names: Pagaran
     given-names: Joseph Ambrose
     orcid: "https://orcid.org/0000-0001-7595-9070"
+abstract: >-
+  Station verification of open AI weather forecasts in complex terrain, across an Alpine
+  and a Nordic domain. Begun on 7 September 2026 as a single-domain Norwegian prototype
+  (version 0.1.0) and widened to two domains, a read-only service and the present
+  documentation on 31 October 2026 (version 0.2.0).
 version: 0.2.0
 date-released: 2026-10-31
 license: Apache-2.0
