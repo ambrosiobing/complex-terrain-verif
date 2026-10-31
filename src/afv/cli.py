@@ -70,6 +70,23 @@ def cmd_sources(args):
     return 0
 
 
+def cmd_serve(args):
+    """Serve results that already exist. Computes nothing, writes nothing."""
+    try:
+        import uvicorn
+    except ImportError:
+        print("the server needs the 'server' extra: pip install -e '.[server]'", file=sys.stderr)
+        return 2
+    from .server import create_app
+    root = Path(args.root)
+    if not root.is_dir():
+        print(f"no results directory at {root}; run `afv score` first", file=sys.stderr)
+        return 2
+    print(f"serving {root.resolve()} on http://{args.host}:{args.port} (read only)")
+    uvicorn.run(create_app(root), host=args.host, port=args.port, log_level="info")
+    return 0
+
+
 def _source_name(cfg, args) -> str:
     return getattr(args, "source", None) or cfg.get("source", "frost")
 
@@ -301,6 +318,7 @@ def main(argv=None) -> int:
     sub.add_parser("info", help="versions and optional dependencies").set_defaults(fn=cmd_info)
     s = sub.add_parser("fixtures", help="write synthetic fixtures for offline runs"); s.add_argument("--out", default="data/fixtures"); s.set_defaults(fn=cmd_fixtures)
     sub.add_parser("sources", help="observation sources, what each serves and what it refuses").set_defaults(fn=cmd_sources)
+    s = sub.add_parser("serve", help="read-only service over an existing results directory"); s.add_argument("--root", default="results"); s.add_argument("--host", default="127.0.0.1"); s.add_argument("--port", type=int, default=8000); s.set_defaults(fn=cmd_serve)
     s = sub.add_parser("stations", help="select and freeze stations (network)"); s.add_argument("--config", default="configs/default.yaml"); s.add_argument("--source"); s.add_argument("--no-quality", action="store_true"); s.set_defaults(fn=cmd_stations)
     s = sub.add_parser("elements", help="resolve Frost element ids (network)"); s.add_argument("ids", nargs="*"); s.set_defaults(fn=cmd_elements)
     s = sub.add_parser("fetch", help="download and standardise ECMWF open data (network)"); s.add_argument("--config", default="configs/default.yaml"); s.add_argument("--model", action="append"); s.add_argument("--latest", action="store_true"); s.add_argument("--download-only", action="store_true"); s.set_defaults(fn=cmd_fetch)

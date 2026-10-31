@@ -1,0 +1,36 @@
+# Self-hosting, in the smallest arrangement that is actually safe.
+#
+#   docker compose up -d
+#
+# The service binds to the loopback address by default, so nothing is reachable from the
+# network until a deliberate choice is made. Two ways to make that choice are written in
+# docs/SERVING.md: a reverse proxy on a machine you control, or an outbound tunnel.
+# Opening a router port to a home network is not one of them.
+
+services:
+  verif:
+    build: .
+    image: complex-terrain-verif:local
+    container_name: verif
+    restart: unless-stopped
+    # Loopback only. Change to "8000:8000" only together with a proxy in front of it.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # Results are produced outside the container and mounted read-only.
+      - ./results:/data/results:ro
+    environment:
+      AFV_RESULTS_ROOT: /data/results
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

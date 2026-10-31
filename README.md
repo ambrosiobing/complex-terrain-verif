@@ -103,6 +103,26 @@ afv fetch    --config configs/default.yaml
 
 A Frost client id goes in `.env` as `FROST_CLIENT_ID`, with `AFV_USER_AGENT` beside it. Open forecast data is retained for about four days, so this domain accumulates its archive one day at a time. GRIB decoding on Windows is in [docs/DEPLOY.md](docs/DEPLOY.md); the short version is that ecCodes is a C library and conda-forge is the reliable route, which is what `pixi.toml` is for.
 
+## Self-hosting
+
+A scored run can be served over HTTP, read-only, on a laptop and with no GPU:
+
+```
+pip install -e ".[server]"
+afv serve --root results
+```
+
+or `docker compose up -d`, which binds to the loopback address, mounts the results
+read-only, drops every capability and runs as a non-root user. The service returns score
+tables, the station list, the manifest, the report and the figures as JSON and files; it
+runs no model, fetches nothing and has no write path. Queries go through DuckDB when it is
+installed and pandas when it is not, and a test asserts the two agree.
+
+[docs/SERVING.md](docs/SERVING.md) has the routes, the two sane ways to expose it, and an
+honest ladder of what a fuller weather server would add at each step and what hardware
+each step needs. Running a model locally is step three on that ladder and is not
+implemented here, for a reason the page states.
+
 ## Results
 
 Results appear under `results/<config name>/`: `matched.parquet`, `scores.parquet`, `report.md`, `figures/`. Every table caption carries the sample size, the interpolation method and the lapse flag.

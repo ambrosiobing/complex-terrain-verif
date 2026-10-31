@@ -38,6 +38,8 @@ regimes = ["cdsapi>=0.7", "contrack>=0.3"]
 # Prefer conda-forge for these; see pixi.toml.
 qc = ["titanlib>=0.3"]
 downscale = ["gridpp>=0.7"]
+# Self-hosting: a read-only service over results already computed. No model runs here.
+server = ["fastapi>=0.110", "uvicorn[standard]>=0.27", "duckdb>=1.0", "httpx>=0.27"]
 
 [project.urls]
 Homepage = "https://github.com/ambrosiobing/complex-terrain-verif"

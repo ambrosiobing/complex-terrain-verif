@@ -1,5 +1,8 @@
 # Deployment
 
+Installing and running the pipeline. For making finished results available over HTTP,
+see [SERVING.md](SERVING.md).
+
 Three targets. Tier 0 and 1 need no GPU. Tier 2 needs a T4 or better.
 
 ## Windows 11, venv, no GPU (Tier 0 and 1)
